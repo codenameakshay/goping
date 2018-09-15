@@ -9,5 +9,5 @@ It uses go routines to make concurrent GET requests and hence is very performant
 
 ### Check Multiple Sites at once
 
-![screenshot](https://imgur.com/TKq2hpG)
-![screenshot](https://imgur.com/WwrLMbq)
+![Imgur](https://i.imgur.com/TKq2hpG.png)
+![Imgur](https://i.imgur.com/WwrLMbq.png)
