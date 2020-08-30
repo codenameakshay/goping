@@ -1,37 +1,58 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/heroku/x/hmetrics/onload"
 )
 
-func getSites() []string {
-	links := os.Args[1:]
-	return links
-}
-
-func getStatus(l string, c chan string) {
+func getStatus(l string, d chan string, c *gin.Context) {
 	resp, err := http.Get(l)
 	if err != nil {
-		fmt.Printf("could not GET %s..\n", l)
-		c <- l
+		c.String(http.StatusOK, "could not GET %s\n", l)
+		// fmt.Printf("could not GET %s\n", l)
+		d <- l
 		return
 	}
-	fmt.Printf("%s responded with status code %d\n", l, resp.StatusCode)
-	c <- l
+	if resp.StatusCode == 200 {
+		c.String(http.StatusOK, "%s is UP (%d)\n", l, resp.StatusCode)
+		// fmt.Printf("%s is UP (%d)\n", l, resp.StatusCode)
+		d <- l
+	} else {
+		c.String(http.StatusOK, "%s responded with (%d)\n", l, resp.StatusCode)
+		// fmt.Printf("%s responded with (%d)\n", l, resp.StatusCode)
+		d <- l
+	}
 }
 
 func main() {
-	links := getSites()
+	port := os.Getenv("PORT")
 
-	c := make(chan string)
-	for _, link := range links {
-		go getStatus(link, c)
+	if port == "" {
+		log.Fatal("$PORT must be set")
 	}
-	for l := range c {
-		go func(link string) {
-			getStatus(link, c)
-		}(l)
-	}
+
+	router := gin.New()
+	router.Use(gin.Logger())
+	router.LoadHTMLGlob("templates/*.tmpl.html")
+	router.Static("/static", "static")
+
+	router.GET("/check", func(c *gin.Context) {
+		link := c.Request.URL.Query().Get("url")
+		links := []string{link}
+
+		d := make(chan string)
+		for _, link := range links {
+			go getStatus(link, d, c)
+		}
+		for l := range d {
+			go func(link string) {
+				getStatus(link, d, c)
+			}(l)
+		}
+	})
+	router.Run(":" + port)
 }

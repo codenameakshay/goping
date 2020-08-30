@@ -1,1 +1,3 @@
-website-status-checker
+.env
+.docker_build/
+bin/
